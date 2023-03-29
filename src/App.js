@@ -19,14 +19,44 @@ import {
   DirectionsRenderer,
 } from '@react-google-maps/api'
 import { useRef, useState } from 'react'
+import { m } from 'framer-motion'
 
 const center = { lat: 48.8584, lng: 2.2945 }
+const axios = require('axios');
 
 function App() {
+  let gMapsApiKey = ''
+
+  let selectedID = 'ChIJA8SnTyg9TIYRrCMpXJk634k'
+
   const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: 'AIzaSyA4Ic9OkUaXveJT2sNkL4HSkfGxnjBucOw',
+    googleMapsApiKey: gMapsApiKey,
     libraries: ['places'],
   })
+
+  let data = JSON.stringify({
+    "emailAddress": "test@gmail.com",
+    "password": "password",
+    "userType": "type"
+  });
+  let config = {
+    method: 'post',
+    maxBodyLength: Infinity,
+    url: 'https://maps.googleapis.com/maps/api/place/details/json?fields=name%2Crating%2Cformatted_phone_number&place_id='+ selectedID + '&key=' + gMapsApiKey,
+    headers: { 
+      'Content-Type': 'application/json'
+    },
+    data: data
+  };
+  async function makeRequest() {
+    try {
+      const response = await axios.request(config);
+      console.log(JSON.stringify(response.data));
+    }
+    catch (error) {
+      console.log(error);
+    }
+  }
 
   const [map, setMap] = useState(/** @type google.maps.Map */ (null))
   const [directionsResponse, setDirectionsResponse] = useState(null)
@@ -82,6 +112,29 @@ function App() {
     destiantionRef.current.value = ''
   }
 
+  /*function displayInfoWindow() {
+    const position = { lat: 33.772, lng: -117.214 }
+    const onLoad = infoWindow => {
+      console.log('infoWindow: ', infoWindow)
+    }
+    const divStyle = {
+      background: `white`,
+      border: `1px solid #ccc`,
+      padding: 15
+    }
+
+    return (
+      <InfoWindow
+        onLoad={onLoad}
+        position={position}
+      >
+        <div style={divStyle}>
+          <h1>InfoWindow</h1>
+        </div>
+      </InfoWindow>
+    )
+  }*/
+
   return (
     <Flex
       position='relative'
@@ -102,7 +155,7 @@ function App() {
             mapTypeControl: false,
             fullscreenControl: false,
           }}
-          onLoad={map => setMap(map)}
+          onLoad = {map => setMap(map)}
         >
           <Marker position={center} />
           {directionsResponse && (
