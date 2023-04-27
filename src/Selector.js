@@ -33,6 +33,10 @@ import { wait } from '@testing-library/user-event/dist/utils';
     let albumIds = [];
     let albumCurrent = 0;
 
+    const [showPlaylist, setShowPlaylist ] = React.useState(false);
+    
+    const [playlists, setPlaylists ] = React.useState([]);
+
     const [state, setState] = React.useState({
         top: false,
         left: false,
@@ -115,7 +119,7 @@ import { wait } from '@testing-library/user-event/dist/utils';
 
       generateCodeChallenge(codeVerifier).then(codeChallenge => {
         let state = generateRandomString(16);
-        let scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private';
+        let scope = 'user-read-private user-read-email playlist-modify-public playlist-modify-private playlist-read-private playlist-read-collaborative';
 
         localStorage.setItem('code-verifier', codeVerifier);
 
@@ -197,6 +201,8 @@ import { wait } from '@testing-library/user-event/dist/utils';
           localStorage.setItem('user-data', data);
           localStorage.setItem('user-id', data.id);
           console.log(data);
+
+          getUserPlaylists();
         })
         .catch(error => {
           console.error('Error:', error);
@@ -298,6 +304,8 @@ import { wait } from '@testing-library/user-event/dist/utils';
         })
         .then(data => {
           console.log(data);
+
+          getUserPlaylists();
         })
         .catch(error => {
           console.error('Error:', error);
@@ -430,6 +438,56 @@ import { wait } from '@testing-library/user-event/dist/utils';
       }
     }
 
+    function getUserPlaylists() {
+      let url = "https://api.spotify.com/v1/users/"+localStorage.getItem('user-id')+"/playlists";
+
+      const response = fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer '+localStorage.getItem('access-token'),
+        },
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('HTTP status ' + response.status);
+          }
+          return response.json();
+        })
+        .then(data => {
+          console.log(data.items);
+          //localStorage.setItem('playlists', data.items);
+          setPlaylists(data.items);
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    }
+
+    function test() {
+      return (
+        <Menu
+          id="basic-menu"
+                  anchorEl={anchorEl}
+                  open={open}
+                  onClose={handleClose}
+                  MenuListProps={{
+                    'aria-labelledby': 'basic-button',
+                  }}
+                >
+                  <MenuItem onClick={handleClose}>Add Stop</MenuItem>
+                  <MenuItem onClick={handleClose}>Rate Trip</MenuItem>
+                  <MenuItem onClick={handleClose}>Delete Trip</MenuItem>
+                  <MenuItem>Test</MenuItem>
+                </Menu>
+      );
+    }
+
+    function changeCondition(event) {
+      setAnchorEl(event.currentTarget);
+      setShowPlaylist(!showPlaylist);
+      console.log(showPlaylist);
+    }
+
     return (
       <div>
         <div>
@@ -453,19 +511,7 @@ import { wait } from '@testing-library/user-event/dist/utils';
                 >
                   Placeholder Trip
                 </Button>
-                <Menu
-                  id="basic-menu"
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleClose}
-                  MenuListProps={{
-                    'aria-labelledby': 'basic-button',
-                  }}
-                >
-                  <MenuItem onClick={handleClose}>Add Stop</MenuItem>
-                  <MenuItem onClick={handleClose}>Rate Trip</MenuItem>
-                  <MenuItem onClick={handleClose}>Delete Trip</MenuItem>
-                </Menu>
+                {test()}
               </Drawer>
             </React.Fragment>
           ))}
@@ -548,9 +594,35 @@ import { wait } from '@testing-library/user-event/dist/utils';
                   onClick={createPlaylistByGenre}
                 >
                   Generate Playlist  
-                </Button> 
+                </Button>
                 <Button
-                id="basic-button"
+                  id="basic-button"
+                  onClick={changeCondition}
+                >
+                  Select Playlist 
+                </Button>
+                {true &&
+                  <Menu
+                    id="basic-menu"
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleClose}
+                    MenuListProps={{
+                    'aria-labelledby': 'basic-button',
+                  }}
+                  >
+                    {
+                    playlists.map(playlist => {
+                      console.log(playlist)
+                      console.log("test")
+                      return <MenuItem>{playlist.name}</MenuItem>
+                    }) 
+                    }
+                      
+                  </Menu>
+                }
+                <Button
+                  id="basic-button"
                   onClick={playPreview}
                 >
                   Play 
