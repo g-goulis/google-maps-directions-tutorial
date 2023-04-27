@@ -21,11 +21,17 @@ import MailIcon from '@mui/icons-material/Mail';
 import { Avatar, ListItemAvatar } from '@mui/material';
 
 import { useRef, useState } from 'react';
+import { wait } from '@testing-library/user-event/dist/utils';
 
   function Selector(props) {
     const clientId = 'bbbd71d9c98a4bc39b1a21675d1b1072';
     const clientSecret = '61e84bce2a0847e88002488b51a5d990';
     const redirectUri = 'http://localhost:3000';
+    let albumPlayer;
+    let albumInit = false;
+    let albumLength = 0;
+    let albumIds = [];
+    let albumCurrent = 0;
 
     const [state, setState] = React.useState({
         top: false,
@@ -148,7 +154,6 @@ import { useRef, useState } from 'react';
         code_verifier: codeVerifier
       });
 
-
       const response = fetch('https://accounts.spotify.com/api/token', {
         method: 'POST',
         headers: {
@@ -165,6 +170,7 @@ import { useRef, useState } from 'react';
         .then(data => {
           localStorage.setItem('access-token', data.access_token);
           console.log(data.access_token);
+          getUserProfile();
         })
         .catch(error => {
           console.error('Error:', error);
@@ -197,7 +203,7 @@ import { useRef, useState } from 'react';
         });
     }
 
-    function createPlaylist() {
+    /*function createPlaylist() {
       //console.log(localStorage.getItem('access-token'))
 
       let url = "https://api.spotify.com/v1/users/"+localStorage.getItem('user-id')+"/playlists"
@@ -230,9 +236,9 @@ import { useRef, useState } from 'react';
         .catch(error => {
           console.error('Error:', error);
         });
-    }
+    }*/
 
-    function addSong() {
+    /*function addSong() {
       let url = "https://api.spotify.com/v1/playlists/"+localStorage.getItem('playlist-id')+"/tracks"
 
       let uriStr = "spotify:track:"+document.getElementById('song-input').value
@@ -263,10 +269,10 @@ import { useRef, useState } from 'react';
         .catch(error => {
           console.error('Error:', error);
         });
-    }
+    }*/
 
     function addSong(uriStr) {
-      let url = "https://api.spotify.com/v1/playlists/"+localStorage.getItem('playlist-id')+"/tracks"
+      let url = "https://api.spotify.com/v1/playlists/"+localStorage.getItem('playlist-id')+"/tracks";
 
       let uriArr = uriStr.split(' ');
       uriArr.pop();
@@ -362,6 +368,66 @@ import { useRef, useState } from 'react';
         .catch(error => {
           console.error('Error:', error);
         });
+    }
+
+    function initPlayPreview() {
+      let url = "https://api.spotify.com/v1/playlists/"+localStorage.getItem('playlist-id')+"?fields=tracks.items";
+
+      const response = fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer '+localStorage.getItem('access-token'),
+        },
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('HTTP status ' + response.status);
+          }
+          return response.json();
+        })
+        .then(data => {
+          for(const item of data.tracks.items) {
+            if(item.track.preview_url != null) {
+              albumLength++;
+              albumIds.push(item.track.preview_url);
+            }
+          }
+          console.log(albumIds);
+
+          console.log("starting play of " + albumIds[0]);
+          albumPlayer = new Audio(albumIds[0]);
+          albumPlayer.play();
+
+          albumInit = true;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    }
+
+    async function playPreview() {
+      if(albumInit) {
+        albumPlayer.play();
+      } else {
+        initPlayPreview();        
+      }
+    }
+
+    function pausePlayPreview() {
+      albumPlayer.pause();
+    }
+
+    function nextPlayPreview() {
+      if(albumInit) {
+        albumCurrent++;
+        if(albumCurrent < albumLength) {
+          console.log("starting play of " + albumIds[albumCurrent]);
+          albumPlayer.pause();
+          albumPlayer.setAttribute('src', albumIds[albumCurrent]);
+          albumPlayer.load();
+          albumPlayer.play();
+        }
+      }
     }
 
     return (
@@ -464,30 +530,6 @@ import { useRef, useState } from 'react';
                 >
                   Update Authorization
                 </Button>
-                <Button
-                  id="basic-button"
-                  onClick={getUserProfile}
-                >
-                  Get Profile Info
-                </Button>
-                <Button
-                  id="basic-button"
-                  onClick={createPlaylist}
-                >
-                  Create Empty Playlist
-                </Button>
-                <TextField 
-                  id="song-input" 
-                  label="Spotify Song ID" 
-                  variant="outlined"
-                  defaultValue="5gB2IrxOCX2j9bMnHKP38i"
-                />
-                <Button
-                  id="basic-button"
-                  onClick={addSong}
-                >
-                  Add Song  
-                </Button>
                 <TextField 
                   id="genre-input" 
                   label="Genre" 
@@ -506,12 +548,49 @@ import { useRef, useState } from 'react';
                   onClick={createPlaylistByGenre}
                 >
                   Generate Playlist  
+                </Button> 
+                <Button
+                id="basic-button"
+                  onClick={playPreview}
+                >
+                  Play 
+                </Button>
+                <Button
+                id="basic-button"
+                  onClick={pausePlayPreview}
+                >
+                  Pause 
+                </Button>
+                <Button
+                id="basic-button"
+                  onClick={nextPlayPreview}
+                >
+                  Next 
                 </Button>
               </Drawer>
             </React.Fragment>
           ))}
         </div>
       </div>
+      /* old manual playlist + song buttons
+                <Button
+                  id="basic-button"
+                  onClick={createPlaylist}
+                >
+                  Create Empty Playlist
+                </Button>
+                <TextField 
+                  id="song-input" 
+                  label="Spotify Song ID" 
+                  variant="outlined"
+                  defaultValue="5gB2IrxOCX2j9bMnHKP38i"
+                />
+                <Button
+                  id="basic-button"
+                  onClick={addSong}
+                >
+                  Add Song  
+                </Button>*/
       /* stop Rating menu
         <div>
           {['Rate This Stop'].map((anchor) => (
