@@ -27,7 +27,7 @@ import { wait } from '@testing-library/user-event/dist/utils';
     const clientId = 'bbbd71d9c98a4bc39b1a21675d1b1072';
     const clientSecret = '61e84bce2a0847e88002488b51a5d990';
     const redirectUri = 'http://localhost:3000';
-    let albumPlayer;
+    let albumPlayer = new Audio();
     let albumInit = false;
     let albumLength = 0;
     let albumIds = [];
@@ -82,10 +82,16 @@ import { wait } from '@testing-library/user-event/dist/utils';
 
     const [anchorEl, setAnchorEl] = React.useState(null);
     const open = Boolean(anchorEl);
-    const handleClick = (event) => {
+    /*const handleClick = (event) => {
       setAnchorEl(event.currentTarget);
-    };
+    };*/
     const handleClose = () => {
+      setAnchorEl(null);
+    };
+    const playlistSelect = (event) => {
+      console.log(event.target.id)
+      localStorage.setItem('playlist-id', event.target.id)
+      albumInit = false;
       setAnchorEl(null);
     };
     
@@ -135,11 +141,6 @@ import { wait } from '@testing-library/user-event/dist/utils';
 
         window.location = 'https://accounts.spotify.com/authorize?' + args;
       });
-
-      //const urlParams = new URLSearchParams(window.location.search)
-      //console.log(code)
-      //localStorage.setItem('code', code);
-      //localStorage.setItem('urlParamsAuth', urlParams);
     }
 
     function getAuthCode() {
@@ -316,7 +317,7 @@ import { wait } from '@testing-library/user-event/dist/utils';
       let url = "https://api.spotify.com/v1/users/"+localStorage.getItem('user-id')+"/playlists"
 
       let body = JSON.stringify({
-        name: "Road Trip Playlist",
+        name: document.getElementById('name-input').value,
         description: "Created by Road Trip Application, "+document.getElementById('genre-input').value+ " genre",
         collaborative: false,
         public: false
@@ -394,6 +395,9 @@ import { wait } from '@testing-library/user-event/dist/utils';
           return response.json();
         })
         .then(data => {
+          albumLength = 0;
+          albumCurrent = 0;
+          albumIds = [];
           for(const item of data.tracks.items) {
             if(item.track.preview_url != null) {
               albumLength++;
@@ -403,7 +407,9 @@ import { wait } from '@testing-library/user-event/dist/utils';
           console.log(albumIds);
 
           console.log("starting play of " + albumIds[0]);
-          albumPlayer = new Audio(albumIds[0]);
+          albumPlayer.pause();
+          albumPlayer.setAttribute('src', albumIds[albumCurrent]);
+          albumPlayer.load();
           albumPlayer.play();
 
           albumInit = true;
@@ -463,33 +469,119 @@ import { wait } from '@testing-library/user-event/dist/utils';
         });
     }
 
-    function test() {
-      return (
-        <Menu
-          id="basic-menu"
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleClose}
-                  MenuListProps={{
-                    'aria-labelledby': 'basic-button',
-                  }}
-                >
-                  <MenuItem onClick={handleClose}>Add Stop</MenuItem>
-                  <MenuItem onClick={handleClose}>Rate Trip</MenuItem>
-                  <MenuItem onClick={handleClose}>Delete Trip</MenuItem>
-                  <MenuItem>Test</MenuItem>
-                </Menu>
-      );
-    }
-
     function changeCondition(event) {
       setAnchorEl(event.currentTarget);
       setShowPlaylist(!showPlaylist);
-      console.log(showPlaylist);
     }
 
     return (
       <div>
+        <div>
+          {['Playlists'].map((anchor) => (
+            <React.Fragment key={anchor}>
+              <Button onClick={toggleDrawer(anchor, true)}>{anchor}</Button>
+              <Drawer
+                anchor='left'
+                open={state[anchor]}
+                onClose={toggleDrawer(anchor, false)}
+              >
+                {list(anchor)}
+                <h2>Playlists</h2>
+                <Button
+                  id="basic-button"
+                  onClick={getUserAuth}
+                >
+                  Authorize
+                </Button>
+                <Button
+                  id="basic-button"
+                  onClick={getAuthCode}
+                >
+                  Update Authorization
+                </Button>
+                <TextField 
+                  id="genre-input" 
+                  label="Genre" 
+                  variant="outlined"
+                  defaultValue="country"
+                />
+                <br/>
+                <TextField 
+                  id="length-input" 
+                  label="Length" 
+                  variant="outlined"
+                  defaultValue="10"
+                />
+                <br/>
+                <TextField 
+                  id="name-input" 
+                  label="Name" 
+                  variant="outlined"
+                  defaultValue="Road Trip Playlist"
+                />
+                <Button
+                  id="basic-button"
+                  onClick={createPlaylistByGenre}
+                >
+                  Generate Playlist  
+                </Button>
+                <Button
+                  id="basic-button"
+                  aria-controls={open ? 'basic-menu' : undefined}
+                  aria-haspopup="true"
+                  aria-expanded={open ? 'true' : undefined}
+                  onClick={changeCondition}
+                >
+                  Select Playlist 
+                </Button>
+                { <Menu
+                    id="basic-menu"
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleClose}
+                    MenuListProps={{
+                    'aria-labelledby': 'basic-button',
+                  }}
+                  >
+                    {
+                    playlists.map(playlist => {
+                      return (
+                        <MenuItem 
+                          onClick={playlistSelect}
+                          id={playlist.id}
+                        >
+                          {playlist.name}
+                        </MenuItem>
+                      )
+                    }) 
+                    }
+                      
+                  </Menu>
+                }
+                <Button
+                  id="basic-button"
+                  onClick={playPreview}
+                >
+                  Play 
+                </Button>
+                <Button
+                id="basic-button"
+                  onClick={pausePlayPreview}
+                >
+                  Pause 
+                </Button>
+                <Button
+                id="basic-button"
+                  onClick={nextPlayPreview}
+                >
+                  Next 
+                </Button>
+              </Drawer>
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+      /* old menus
         <div>
           {['My Trips'].map((anchor) => (
             <React.Fragment key={anchor}>
@@ -552,98 +644,7 @@ import { wait } from '@testing-library/user-event/dist/utils';
               </Drawer>
             </React.Fragment>
           ))}
-        </div>
-        <div>
-          {['Playlists'].map((anchor) => (
-            <React.Fragment key={anchor}>
-              <Button onClick={toggleDrawer(anchor, true)}>{anchor}</Button>
-              <Drawer
-                anchor='left'
-                open={state[anchor]}
-                onClose={toggleDrawer(anchor, false)}
-              >
-                {list(anchor)}
-                <h2>Playlists</h2>
-                <Button
-                  id="basic-button"
-                  onClick={getUserAuth}
-                >
-                  Authorize
-                </Button>
-                <Button
-                  id="basic-button"
-                  onClick={getAuthCode}
-                >
-                  Update Authorization
-                </Button>
-                <TextField 
-                  id="genre-input" 
-                  label="Genre" 
-                  variant="outlined"
-                  defaultValue="country"
-                />
-                <br/>
-                <TextField 
-                  id="length-input" 
-                  label="Length" 
-                  variant="outlined"
-                  defaultValue="10"
-                />
-                <Button
-                  id="basic-button"
-                  onClick={createPlaylistByGenre}
-                >
-                  Generate Playlist  
-                </Button>
-                <Button
-                  id="basic-button"
-                  onClick={changeCondition}
-                >
-                  Select Playlist 
-                </Button>
-                {true &&
-                  <Menu
-                    id="basic-menu"
-                    anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleClose}
-                    MenuListProps={{
-                    'aria-labelledby': 'basic-button',
-                  }}
-                  >
-                    {
-                    playlists.map(playlist => {
-                      console.log(playlist)
-                      console.log("test")
-                      return <MenuItem>{playlist.name}</MenuItem>
-                    }) 
-                    }
-                      
-                  </Menu>
-                }
-                <Button
-                  id="basic-button"
-                  onClick={playPreview}
-                >
-                  Play 
-                </Button>
-                <Button
-                id="basic-button"
-                  onClick={pausePlayPreview}
-                >
-                  Pause 
-                </Button>
-                <Button
-                id="basic-button"
-                  onClick={nextPlayPreview}
-                >
-                  Next 
-                </Button>
-              </Drawer>
-            </React.Fragment>
-          ))}
-        </div>
-      </div>
+        </div>*/
       /* old manual playlist + song buttons
                 <Button
                   id="basic-button"
@@ -663,55 +664,6 @@ import { wait } from '@testing-library/user-event/dist/utils';
                 >
                   Add Song  
                 </Button>*/
-      /* stop Rating menu
-        <div>
-          {['Rate This Stop'].map((anchor) => (
-            <React.Fragment key={anchor}>
-              <Button onClick={toggleDrawer(anchor, true)}>{anchor}</Button>
-              <Drawer
-                anchor='left'
-                open={state[anchor]}
-                onClose={toggleDrawer(anchor, false)}
-              >
-                {list(anchor)}
-                <h2>Stop: {selectedStopName}</h2>
-                <p>Rate This Stop</p>
-                <p>Tell us what you thought about {selectedStopName}:</p>
-                <TextField>
-                  
-                </TextField>
-                <Button>Rate</Button>
-                
-              </Drawer>
-                
-            </React.Fragment>
-          ))}
-        </div>
-      */
-      /* Old code
-      <div>
-        {['My Trips', 'Saved Stops', 'Rate This Stop', 'My Account'].map((anchor) => (
-          <React.Fragmx`ent key={anchor}>
-            <Button onClick={toggleDrawer(anchor, true)}>{anchor}</Button>
-            <Drawer
-              anchor='left'
-              //anchor={anchor}
-              open={state[anchor]}
-              onClose={toggleDrawer(anchor, false)}
-            >
-              {list(anchor)}
-              <TextField
-                id="test"
-                label="testing"
-                type="text"
-                inputRef={useRef}
-                placeholder="Hello World"
-              />
-            </Drawer>
-          </React.Fragment>
-        ))}
-      </div>
-      */
     );
     
   }
